@@ -45,7 +45,12 @@ class ChatbotWrapper:
             "access_token": ConfigHandler.instance().config['access_token']
         })
 
-
+def is_valid_url(url):
+    try:
+        result = urlparse(url)
+        return all([result.scheme, result.netloc])
+    except ValueError:
+        return False
 def remove_invalid_urls(urls):
     for url in urls:
         try:
