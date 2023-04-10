@@ -1,6 +1,50 @@
 
 import pysubs2
 from urllib.parse import urlparse
+from revChatGPT.V1 import Chatbot
+from Youtube2Bili.config_handler import ConfigHandler
+class ChatbotWrapper:
+    _instance = None
+
+    def __new__(cls, *args, **kwargs):
+        if cls._instance is None:
+            cls._instance = super().__new__(cls)
+            # You can also initialize attributes here if needed
+        return cls._instance
+
+    def __init__(self,access_token=None):
+        if access_token!=None:
+            self.chatbot = Chatbot(config={
+            "access_token": access_token
+        })
+        
+
+    @classmethod
+    def instance(cls, access_token=None):
+        return cls(access_token)
+
+    def ask(self, prompt):
+        """
+        询问 Chatbot
+
+        :param prompt: 询问内容
+        :return: Chatbot 的回答
+        """
+        response = ""
+        for data in self.chatbot.ask(prompt):
+            response = data["message"]
+        return response
+
+    def update_access_token(self):
+        """
+        更新访问令牌
+
+        :param new_access_token: 新的访问令牌
+        """
+        self.chatbot = Chatbot(config={
+            "access_token": ConfigHandler.instance().config['access_token']
+        })
+
 
 def remove_invalid_urls(urls):
     for url in urls:

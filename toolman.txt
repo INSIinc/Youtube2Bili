@@ -1,0 +1,1 @@
+ python -m bilibili_toolman --save --cookies "SESSDATA=1e176b43%2C1696678259%2C4aed6%2A41;bili_jct=2cc377da4480f5456b5d6e3e13380cd5"

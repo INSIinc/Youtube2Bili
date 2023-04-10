@@ -1,41 +1,58 @@
 import os
-import youtube_dl
 import asyncio
 from pyppeteer import launch
 from datetime import datetime
-from Youtube2Bili.tools import BilingualSubtitleMerger,remove_invalid_urls
+from Youtube2Bili.tools import BilingualSubtitleMerger,remove_invalid_urls,ChatbotWrapper
 import os
 from bilibili_toolman.bilisession.web import BiliSession
 from bilibili_toolman.bilisession.common.submission import Submission
 from PIL import Image
 import time
+import yt_dlp as youtube_dl
 from typing import List
-import json
+from Youtube2Bili.config_handler import ConfigHandler
 import logging
+import coloredlogs
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
+fmt = '%(asctime)s %(levelname)s %(message)s'
+coloredlogs.install(level='INFO', logger=logger, fmt=fmt)
 class YouTube2Bili:
-    def __init__(self, blogger_urls, output_directory,bilibili_token, max_age_days=7, polling_interval=3600,):
-        self.blogger_urls = blogger_urls
-        self.output_directory = output_directory
-        self.max_age_days = max_age_days
-        self.bilibili_token=bilibili_token
-        self.polling_interval = polling_interval
-        self.downloaded_videos_file = os.path.join(output_directory, "downloaded_videos.txt")
-    def update_config(self, blogger_urls, output_directory, bilibili_token,max_age_days, polling_interval):
+    def __init__(self, ):
+        self.blogger_urls = []
+        self.output_directory = ''
+        self.max_age_days = 0
+        self.bilibili_token=''
+        self.polling_interval = 0
+        self.output_directory=''
+        self.downloaded_videos_file = os.path.join(self.output_directory, "downloaded_videos.txt")
+        self.outdate_videos_file=os.path.join(self.output_directory,"outdate_videos.txt")    
+    def update_config(self):
         logger.info("信息更新")
-        self.blogger_urls = blogger_urls
-        self.output_directory = output_directory
-        self.bilibili_token=bilibili_token
-        self.max_age_days = max_age_days
-        self.polling_interval = polling_interval
-        self.downloaded_videos_file = os.path.join(output_directory, "downloaded_videos.txt")
+        self.blogger_urls = ConfigHandler.instance().config['blogger_urls']
+        self.output_directory = ConfigHandler.instance().config['output_directory']
+        self.bilibili_token=ConfigHandler.instance().config['bilibili_token']
+        self.max_age_days = ConfigHandler.instance().config['max_age_days']
+        self.polling_interval = ConfigHandler.instance().config['polling_interval']
+        self.downloaded_videos_file = os.path.join(self.output_directory, "downloaded_videos.txt")
+        self.outdate_videos_file=os.path.join(self.output_directory,"outdate_videos.txt")  
     def process_video(self,video_title:str,video_path:str,video_desc:str,video_link:str,video_cover:str,video_tags:List[str]):
         session = BiliSession.from_base64_string(self.bilibili_token) 
         endpoint_1,cid_1 = session.UploadVideo(video_path)
+        logger.info("GPT正在处理标题...")
+        video_title=ChatbotWrapper.instance().ask(f'把这段话改写成有趣且富有吸引力，能够激发好奇心和学习欲望的中文标题：{video_title}')
+        logger.info("标题处理完毕！")
+        logger.info("GPT正在生成描述...")
+        video_desc=ChatbotWrapper.instance().ask(f'把这段话概括成有趣活泼、生动形象、清晰易懂的地道中文描述：{video_desc}')
+        logger.info("描述生成完毕！")
+        logger.info("GPT正在生成标签...")
+        tags=ChatbotWrapper.instance().ask(f'{video_desc}用中文从以上文本中总结出不多于5个关键词，并用,隔开')
+        tags=tags.split(',')
+        logger.info("标签生成完毕！")
+        logger.info("准备提交视频...")
         submission = Submission(
         title=video_title,
-        desc=video_desc+f'\n来源:{video_link}'
+        desc=video_desc
         )
         submission.videos.append(
             Submission(
@@ -44,19 +61,24 @@ class YouTube2Bili:
             )
         )
         cover = session.UploadCover(video_cover)
-        submission.description=video_desc+f'\n来源:{video_link}'
+        submission.description=video_desc
         submission.cover_url = cover['data']['url']
         submission.source = video_link
         submission.tags.append('转载')
-        for tag in video_tags:
+        for tag in tags:
             submission.tags.append(tag)
         submission.thread = 122
-        session.SubmitSubmission(submission,seperate_parts=False)
+        logger.info(session.SubmitSubmission(submission,seperate_parts=False))
+        logger.info("写入视频列表txt...")
+        with open(self.downloaded_videos_file, "a") as f:
+            f.write(video_link + "\n")
+        logger.info(f"B站上传完毕:{video_title}")
+        
     async def get_blogger_videos(self, blogger_url):
         browser = await launch(headless=True)
         page = await browser.newPage()
         await page.goto(blogger_url)
-        await asyncio.sleep(5)  # 添加延迟以确保页面完全加载
+        await asyncio.sleep(3)  # 添加延迟以确保页面完全加载
         video_links = await page.evaluate('''() => {
             const videoElements = document.querySelectorAll('#video-title-link');
             return Array.from(videoElements).map(video => video.href);
@@ -69,35 +91,39 @@ class YouTube2Bili:
         return days_since_upload <= self.max_age_days
     def download_videos(self, video_links):
         ydl_opts = {
-            'outtmpl': os.path.join(self.output_directory,'%(title)s','%(title)s.%(ext)s'),
-            'format': 'best', 
-            'writeautomaticsub': True,
+            'outtmpl': os.path.join(self.output_directory, '%(title)s', '%(title)s.%(ext)s'),
+            'format': 'best',
+            'writesubtitles': True,
             'subtitleslangs': ['en', 'zh-Hans'],
             'writethumbnail': True,
+            'writeinfojson': True,
+            'embedsubtitles': True,
+            'postprocessors': [{'key': 'FFmpegEmbedSubtitle'}],
         }
         with youtube_dl.YoutubeDL(ydl_opts) as ydl:
             video_links= remove_invalid_urls(video_links)
             for link in video_links:
-                if link in self.downloaded_videos_url:
-                    logger.info("视频已下载，跳过")
+                if link in self.downloaded_videos_url or link in self.outdate_videos_url:
+                    logger.info("视频已下载或过时，跳过！")
                     continue
                 else:
-                    logger.info("抓取视频信息中")
+                    logger.info("抓取视频信息中...")
                     video_info = ydl.extract_info(link, download=False)
-                    logger.info("信息抓取完毕")
+                    logger.info("信息抓取完毕！")
                     if self.is_video_recent(video_info):
                         # subtitle=video_info['automatic_captions']
                         # subtitle_urls = [subtitle['zh-Hans'][4]['url'],subtitle['en'][4]['url']]
-                        logger.info("视频下载中")
+                        logger.info("视频下载中...")
                         ydl.download([link])
-                        logger.info("写入视频列表txt")
-                        with open(self.downloaded_videos_file, "a") as f:
-                            f.write(link + "\n")
                         
-                        subtitle_ext = 'vtt'
-                        subtitle_filename_en = os.path.splitext(ydl.prepare_filename(video_info))[0] +'.en' f'.{subtitle_ext}'
-                        subtitle_filename_zh = os.path.splitext(ydl.prepare_filename(video_info))[0] +'.zh-Hans' f'.{subtitle_ext}'
-                        output_subtitle=os.path.splitext(ydl.prepare_filename(video_info))[0] + f'.{subtitle_ext}'
+                        if link in self.outdate_videos_url:
+                            with open(self.outdate_videos_file, "w") as f:
+                                for outlink in self.outdate_videos_url:
+                                    if link != outlink:
+                                        f.write(outlink)   
+                        # subtitle_filename_en = os.path.splitext(ydl.prepare_filename(video_info))[0] +'.en' f'.{subtitle_ext}'
+                        # subtitle_filename_zh = os.path.splitext(ydl.prepare_filename(video_info))[0] +'.zh-Hans' f'.{subtitle_ext}'
+                        # output_subtitle=os.path.splitext(ydl.prepare_filename(video_info))[0] + f'.{subtitle_ext}'
                         video_path = ydl.prepare_filename(video_info)
                         logger.info("处理封面中")
                         [Image.open(os.path.join(os.path.dirname(video_path), f)).save(os.path.join(os.path.dirname(video_path), os.path.splitext(f)[0] + ".png"))  for f in os.listdir(os.path.dirname(video_path)) if f.lower().endswith((".jpg", ".jpeg", ".png", ".bmp", ".gif",".webp"))]
@@ -108,19 +134,28 @@ class YouTube2Bili:
                         logger.info("清除多余文件中")
                         # os.remove(subtitle_filename_en)
                         # os.remove(subtitle_filename_zh)
-                        [os.remove(f) for f in os.listdir(os.path.dirname(video_path)) if os.path.isfile(f) and not f.endswith('.png') and f.endswith(('.jpg', '.jpeg', '.bmp', '.gif','webp'))]
+                        [os.remove(os.path.join(os.path.dirname(video_path), f)) for f in os.listdir(os.path.dirname(video_path)) if os.path.isfile(os.path.join(os.path.dirname(video_path), f)) and not f.endswith('.png') and f.endswith(('.jpg', '.jpeg', '.bmp', '.gif', 'webp'))]
                         # 新增代码：处理视频文件，上传到 Bilibili 并删除本地文件
                         logger.info("正在发布至B站")
                         self.process_video(video_info['title'], video_path,video_info['description'],link,cover,video_info['tags'])
-               
+                        os.remove(video_path)
+                    else:
+                        with open(self.outdate_videos_file, "a") as f:
+                            f.write(link + "\n")
 
     def run(self):
         if not os.path.exists(self.downloaded_videos_file):
             with open(self.downloaded_videos_file, "w") as f:
                 f.write("")
-        with open(self.downloaded_videos_file, "r") as f:
-            self.downloaded_videos_url = set(line.strip() for line in f.readlines())
+        if not os.path.exists(self.outdate_videos_file):
+            with open(self.outdate_videos_file, "w") as f:
+                f.write("")
+        
         while True:
+            with open(self.downloaded_videos_file, "r") as f:
+                self.downloaded_videos_url = set(line.strip() for line in f.readlines())
+            with open(self.outdate_videos_file,"r")as f:
+                self.outdate_videos_url=set(line.strip() for line in f.readlines())
             if len(self.blogger_urls)==0:
                 logger.warning("博主url为空")
             else:
@@ -128,6 +163,8 @@ class YouTube2Bili:
                     logger.critical(f'处理博主：{blogger_url}')
                     video_links = asyncio.get_event_loop().run_until_complete(self.get_blogger_videos(blogger_url))
                     self.download_videos(video_links)
+            
+            
             time.sleep(self.polling_interval)
 
 
