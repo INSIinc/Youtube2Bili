@@ -61,5 +61,5 @@ pip install watchdog youtube_dl asyncio pyppeteer bilibili_toolman Pillow
 
 * 本脚本使用 asyncio 和 pyppeteer 库来从指定 YouTuber 的频道中获取视频链接。这些库可能需要安装其他依赖项。如果您在运行脚本时遇到错误，请根据您收到的错误消息进行调整。🔍
 
-* 本脚本使用 `watchdog` 库来监视配置文件的更改。如果您想更改配置文件，请确保将更改保存在指定的配置文件中。如果您在运行脚本时遇到配置问题
+* 本脚本使用 `watchdog` 库来监视配置文件的更改。如果您想更改配置文件，请确保将更改保存在指定的配置文件中。如果您在运行脚本时遇到配置问题，请查看配置文件的格式是否正确。
 
