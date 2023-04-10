@@ -63,7 +63,6 @@ pip install watchdog youtube_dl asyncio pyppeteer bilibili_toolman Pillow
    nohup python main.py &
    ```
 
-## Response:
 
 5. Configure automatic startup:
 

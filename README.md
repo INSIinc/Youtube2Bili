@@ -62,7 +62,6 @@ pip install watchdog youtube_dl asyncio pyppeteer bilibili_toolman Pillow
    nohup python main.py &
    ```
 
-## Response:
 5. 配置自动启动：
 
    如果你想在系统启动时自动启动 YouTube2Bili，可以在 Linux 或 macOS 上使用 `crontab`，在 Windows 上使用任务计划程序。以下是一个使用 `crontab` 的示例：
