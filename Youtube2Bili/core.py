@@ -131,7 +131,12 @@ class YouTube2Bili:
                 logger.info("信息抓取完毕！")
                 if self.is_video_recent(video_info):
                     logger.info("视频下载中...")
-                    ydl.download([video_link])
+                    try:
+                        ydl.download([video_link])
+                    except Exception as e:
+                        logger.error(f"{video_link}视频下载失败，错误信息：{e}")
+                        return
+
                     if self.video_downloaded:
                         video_path = ydl.prepare_filename(video_info)
                         logger.info("处理封面中")
