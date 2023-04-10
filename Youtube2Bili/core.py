@@ -103,11 +103,11 @@ class YouTube2Bili:
                         [Image.open(os.path.join(os.path.dirname(video_path), f)).save(os.path.join(os.path.dirname(video_path), os.path.splitext(f)[0] + ".png"))  for f in os.listdir(os.path.dirname(video_path)) if f.lower().endswith((".jpg", ".jpeg", ".png", ".bmp", ".gif",".webp"))]
                         cover=os.path.splitext(ydl.prepare_filename(video_info))[0] + f'.png'
                         # ydl.download(subtitle_urls, outtmpl=subtitle_filename)
-                        logger.info("处理字幕中")
-                        BilingualSubtitleMerger.merge(subtitle_filename_en,subtitle_filename_zh,output_subtitle)
+                        # logger.info("处理字幕中")
+                        # BilingualSubtitleMerger.merge(subtitle_filename_en,subtitle_filename_zh,output_subtitle)
                         logger.info("清除多余文件中")
-                        os.remove(subtitle_filename_en)
-                        os.remove(subtitle_filename_zh)
+                        # os.remove(subtitle_filename_en)
+                        # os.remove(subtitle_filename_zh)
                         [os.remove(f) for f in os.listdir(os.path.dirname(video_path)) if os.path.isfile(f) and not f.endswith('.png') and f.endswith(('.jpg', '.jpeg', '.bmp', '.gif','webp'))]
                         # 新增代码：处理视频文件，上传到 Bilibili 并删除本地文件
                         logger.info("正在发布至B站")
