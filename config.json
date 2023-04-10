@@ -1,7 +1,0 @@
-{
-    "blogger_urls": ["https://www.youtube.com/@Fireship/videos","https://www.youtube.com/@BrickExperimentChannel/videos"],
-    "output_directory": "downloaded_videos",
-    "max_age_days": 7,
-    "polling_interval": 1,
-    "bilibili_token":"H4sIAOCCMmQC/1WSS2/TQBDHg5o0kYAqtBIXQIoiiiiINN64roPgELVIqJUMotxXfmw0225s41239BAJOKBY2hvL5+OrsGu7efhgj//z2J3fzI/mX77VKJ+5einbYZJcUcKV7GbkW0644IOl9OhLLZ2UypmfqT/q4KcqE3GaMBreKrkDQqR10qUOkXunZOrnTFRZn6uwZWInJoKHfkrUQrazaYjGzpEq5J4xreEY+xwvIzz5AGhEcFUc6bCHXGQ0FDhKZj6NtfCkFupKOI+vSUan1A+YOeFx7Y75pqeQ3ZWnLnbekE9XIicC05gK6jMdwJjurJC7m/7UF1CWImGeEZxmiUjChGl0LQNFf7duOFe/NV0csCS8IlF9GFcHWvMZS27WNE82cZzcqLN/v1CUB7KD72YxV7JhXvcOK4gXHy4uTidfJwo6crsCvTYb3SinSdlRM/ZnRMFz2br2WU6U7LsoiFBkB/voxHI0MhfZtmV+3MBx9tHERko20yQT+jo75ot5SkINjkS61+0aFvRktzI33Lu1tiIntNosQUFf19PGWsJCblfsdFCbfE9pRgyFdkT1AmTGrxd0NiOxucz92sR5xkxQvTE6tYV1njB8Oh81908xu1UeNwADyii+DIWCFxUcODhvwCt4D69lb+igKbHRKAyGrhW5U+SQYxs5rmWTILCtkYI3HgwKOIQeDAuwCkDQh9EC7AKOPHAWcOyB68G4gLdzBe/MkTnn8Oxufm1OeDkIvQckUPngP0LrKDh+AwAA"
-}
