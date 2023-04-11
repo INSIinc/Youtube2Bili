@@ -1,6 +1,13 @@
 import json
+import logging
+import coloredlogs
 from watchdog.events import FileSystemEventHandler
+import random
 
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
+fmt = '%(asctime)s %(levelname)s %(message)s'
+coloredlogs.install(level='INFO', logger=logger, fmt=fmt)
 class ConfigHandler(FileSystemEventHandler):
     _instance = None
     def __new__(cls, *args, **kwargs):
@@ -16,6 +23,7 @@ class ConfigHandler(FileSystemEventHandler):
     def on_modified(self, event):
         if not event.is_directory and event.src_path.endswith(self.config_file):
             self.reload_config()
+            
     @classmethod
     def instance(cls,config_file=None,onConfigUpdateCallBacks=None):
         return cls(config_file,onConfigUpdateCallBacks)
@@ -25,9 +33,12 @@ class ConfigHandler(FileSystemEventHandler):
         self.config['blogger_urls']=[]
         for blogger in self.config['bloggers']:
             self.config['blogger_urls'].append(f"https://www.youtube.com/@{blogger}/videos")
-        return self.config
+        if self.config['enable_shuffle']:
+            logger.info("博主处理顺序已被随机调整！")
+            random.shuffle(self.config['blogger_urls'])
+        
 
     def reload_config(self):
-        self.config = self.load_config()
+        self.load_config()
         for onConfigUpdate in self.onConfigUpdateCallBacks:
             onConfigUpdate()

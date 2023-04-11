@@ -4,6 +4,7 @@ import os
 import time
 from datetime import datetime
 from typing import List
+import shutil
 
 import coloredlogs
 import yt_dlp as youtube_dl
@@ -23,31 +24,41 @@ coloredlogs.install(level='INFO', logger=logger, fmt=fmt)
 class YouTube2Bili:
     def __init__(self, ):
         self.video_downloaded = False
+        self.max_age_days=None
     def update_config(self):
-        logger.info("信息更新")
-        self.blogger_urls = ConfigHandler.instance().config['blogger_urls']
+        logger.critical("加载config.json")
         self.output_directory = ConfigHandler.instance().config['output_directory']
-        self.max_age_days = ConfigHandler.instance().config['max_age_days']
+        self.downloaded_videos_file = os.path.join(self.output_directory, "downloaded_videos.txt")
+        self.outdate_videos_file=os.path.join(self.output_directory,"outdate_videos.txt")  
         self.polling_interval = ConfigHandler.instance().config['polling_interval']
         self.ffmpeg_path=ConfigHandler.instance().config['ffmpeg_path']
         self.max_video_size_mb = ConfigHandler.instance().config['max_video_size_mb']
         self.max_downloads_per_blogger=ConfigHandler.instance().config['max_downloads_per_blogger']
         self.sessdata=ConfigHandler.instance().config['sessdata']
         self.bili_jct=ConfigHandler.instance().config['bili_jct']
-        self.downloaded_videos_file = os.path.join(self.output_directory, "downloaded_videos.txt")
-        self.outdate_videos_file=os.path.join(self.output_directory,"outdate_videos.txt")  
+        self.blogger_urls = ConfigHandler.instance().config['blogger_urls']
+        if self.max_age_days!=None and self.max_age_days!=ConfigHandler.instance().config['max_age_days']:
+            logger.info("检测到max_ge_days更新->重新生成缓存")
+            with open(self.outdate_videos_file, "w") as f:
+                f.write("")
+        self.max_age_days = ConfigHandler.instance().config['max_age_days']
+        with open(self.downloaded_videos_file, "r") as f:
+                self.downloaded_videos_url = set(line.strip() for line in f.readlines())
+        with open(self.outdate_videos_file,"r")as f:
+            self.outdate_videos_url=set(line.strip() for line in f.readlines())
     def progress_hook(self, status_info):
-        if status_info['status'] == 'finished':
+        if status_info['filename'].endswith('.mp4')and status_info['status'] == 'finished':
             self.video_downloaded = True
             logger.critical(f"视频下载完成: {status_info['filename']}")
     def process_video(self,video_title:str,video_path:str,video_desc:str,video_link:str,video_cover:str,video_tags:List[str]):
         session = BiliSession.from_base64_string(get_bili_login_token(self.sessdata,self.bili_jct)) 
+        logger.info(f"视频开始上传")
         endpoint_1,cid_1 = session.UploadVideo(video_path)
         logger.info("GPT正在处理标题...")
-        video_title=ChatbotWrapper.instance().ask(f'把这段话改写成有趣且富有吸引力，能够激发好奇心和学习欲望的中文标题，不超过20个字：{video_title}')
+        video_title=ChatbotWrapper.instance().ask(f'把这段话改写成生动有趣、富有吸引力，能够激发好奇心和探索欲望的中文标题（20个字以内）：{video_title}')
         logger.info("标题处理完毕！")
         logger.info("GPT正在生成描述...")
-        video_desc=ChatbotWrapper.instance().ask(f'把这段话去除宣传信息，并改写成有趣活泼、生动形象、简洁清晰的地道中文：{video_desc}')
+        video_desc=ChatbotWrapper.instance().ask(f'把这段话中必要的视频描述和参考资料改写为有趣活泼、生动形象、简洁清晰的中文：{video_desc}')
         logger.info("描述生成完毕！")
         logger.info("GPT正在生成标签...")
         tags=ChatbotWrapper.instance().ask(f'{video_desc}用中文从以上文本中总结出不多于5个关键词，并用,隔开')
@@ -77,6 +88,7 @@ class YouTube2Bili:
         with open(self.downloaded_videos_file, "a") as f:
             f.write(video_link + "\n")
         logger.info(f"B站上传完毕:{video_title}")
+        
         
     async def get_blogger_videos(self, blogger_url):
         browser = await launch(headless=True)
@@ -130,14 +142,18 @@ class YouTube2Bili:
 
                     if self.video_downloaded:
                         video_path = ydl.prepare_filename(video_info)
-                        logger.info("处理封面中")
+                        logger.info("处理封面中...")
                         [Image.open(os.path.join(os.path.dirname(video_path), f)).save(os.path.join(os.path.dirname(video_path), os.path.splitext(f)[0] + ".png"))  for f in os.listdir(os.path.dirname(video_path)) if f.lower().endswith((".jpg", ".jpeg", ".png", ".bmp", ".gif",".webp"))]
                         cover=os.path.splitext(ydl.prepare_filename(video_info))[0] + f'.png'
-                        logger.info("清除多余文件中")
-                        [os.remove(os.path.join(os.path.dirname(video_path), f)) for f in os.listdir(os.path.dirname(video_path)) if os.path.isfile(os.path.join(os.path.dirname(video_path), f)) and not f.endswith('.png') and f.endswith(('.jpg', '.jpeg', '.bmp', '.gif', 'webp'))]
-                        logger.info("正在发布至B站")
-                        self.process_video(video_info['title'], video_path,video_info['description'],video_link,cover,video_info['tags'])
-                        os.remove(video_path)
+                        try:
+                            self.process_video(video_info['title'], video_path,video_info['description'],video_link,cover,video_info['tags'])
+                            
+                        except Exception as e:
+                            logger.error(f"{video_link}视频发布失败，错误信息：{e}")
+                            return
+                        logger.info("清除已上传视频及文件...")
+                        shutil.rmtree(os.path.dirname(video_path))
+        
                     else:    
                         logger.info(f"可能由于文件大于{self.max_video_size_mb}MB，视频未下载，跳过后续处理")
                         return
@@ -159,10 +175,7 @@ class YouTube2Bili:
                 f.write("")
         
         while True:
-            with open(self.downloaded_videos_file, "r") as f:
-                self.downloaded_videos_url = set(line.strip() for line in f.readlines())
-            with open(self.outdate_videos_file,"r")as f:
-                self.outdate_videos_url=set(line.strip() for line in f.readlines())
+            
             if len(self.blogger_urls)==0:
                 logger.warning("博主url为空")
             else:
