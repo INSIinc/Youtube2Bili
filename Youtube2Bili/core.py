@@ -36,6 +36,8 @@ class YouTube2Bili:
         self.max_downloads_per_blogger=ConfigHandler.instance().config['max_downloads_per_blogger']
         self.sessdata=ConfigHandler.instance().config['sessdata']
         self.bili_jct=ConfigHandler.instance().config['bili_jct']
+        self.title_prompt=ConfigHandler.instance().config['title_prompt']
+        self.desc_prompt=ConfigHandler.instance().config['desc_prompt']
         self.blogger_urls = ConfigHandler.instance().config['blogger_urls']
         if self.max_age_days!=None and self.max_age_days!=ConfigHandler.instance().config['max_age_days']:
             logger.info("检测到max_ge_days更新->重新生成缓存")
@@ -55,10 +57,10 @@ class YouTube2Bili:
         logger.info(f"视频开始上传")
         endpoint_1,cid_1 = session.UploadVideo(video_path)
         logger.info("GPT正在处理标题...")
-        video_title=ChatbotWrapper.instance().ask(f'把这段话改写成生动有趣、富有吸引力，能够激发好奇心和探索欲望的中文标题（20个字以内）：{video_title}')
+        video_title=ChatbotWrapper.instance().ask(f'{self.title_prompt}{video_title}')
         logger.info("标题处理完毕！")
         logger.info("GPT正在生成描述...")
-        video_desc=ChatbotWrapper.instance().ask(f'把这段话中必要的视频描述和参考资料改写为有趣活泼、生动形象、简洁清晰的中文：{video_desc}')
+        video_desc=ChatbotWrapper.instance().ask(f'{self.desc_prompt}{video_desc}')
         logger.info("描述生成完毕！")
         logger.info("GPT正在生成标签...")
         tags=ChatbotWrapper.instance().ask(f'{video_desc}用中文从以上文本中总结出不多于5个关键词，并用,隔开')

@@ -11,6 +11,8 @@
         "SteveMould",
         "veritasium"
         ],
+    "title_prompt":"把这段话改写成生动有趣、富有吸引力，能够激发好奇心和探索欲望的中文标题（20个字以内）：",
+    "desc_prompt":"现在你是一个知识渊博猫娘，你需要把这段话中必要的视频描述和参考资料改写为有趣活泼、生动形象、简洁清晰的中文：",
     "output_directory": "downloaded_videos",
     "max_age_days": 360,
     "ffmpeg_path":"C:\\Program Files\\ffmpeg-6.0-essentials_build\\bin\\ffmpeg.exe",
