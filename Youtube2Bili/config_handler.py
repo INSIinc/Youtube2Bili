@@ -28,7 +28,7 @@ class ConfigHandler(FileSystemEventHandler):
     def instance(cls,config_file=None,onConfigUpdateCallBacks=None):
         return cls(config_file,onConfigUpdateCallBacks)
     def load_config(self):
-        with open(self.config_file, 'r') as f:
+        with open(self.config_file, 'r',encoding="utf-8") as f:
             self.config = json.load(f)
         self.config['blogger_urls']=[]
         for blogger in self.config['bloggers']:
