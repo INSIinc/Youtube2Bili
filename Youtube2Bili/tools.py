@@ -3,6 +3,25 @@ import pysubs2
 from urllib.parse import urlparse
 from revChatGPT.V1 import Chatbot
 from Youtube2Bili.config_handler import ConfigHandler
+import subprocess
+
+def get_bili_login_token(sessdata, bili_jct):
+    """
+    运行 bilibili_toolman 命令，并返回去除“保存登录凭据”、空格和换行符后的输出结果。
+    """
+
+    # 构造命令行命令
+    command = ["python", "-m", "bilibili_toolman", "--save", "--cookies", f"SESSDATA={sessdata};bili_jct={bili_jct}"]
+
+    # 运行命令行命令，并捕获输出结果
+    result = subprocess.run(command, capture_output=True, text=True)
+
+    # 处理输出
+    output = result.stdout.split("保存登录凭据")[1].replace(" ", "").replace("\n", "")
+
+    # 返回处理后的输出结果
+    return output
+
 class ChatbotWrapper:
     _instance = None
 

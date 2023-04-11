@@ -1,18 +1,20 @@
-import os
 import asyncio
-from pyppeteer import launch
-from datetime import datetime
-from Youtube2Bili.tools import BilingualSubtitleMerger,remove_invalid_urls,is_valid_url,ChatbotWrapper
-import os
-from bilibili_toolman.bilisession.web import BiliSession
-from bilibili_toolman.bilisession.common.submission import Submission
-from PIL import Image
-import time
-import yt_dlp as youtube_dl
-from typing import List
-from Youtube2Bili.config_handler import ConfigHandler
 import logging
+import os
+import time
+from datetime import datetime
+from typing import List
+
 import coloredlogs
+import yt_dlp as youtube_dl
+from bilibili_toolman.bilisession.common.submission import Submission
+from bilibili_toolman.bilisession.web import BiliSession
+from PIL import Image
+from pyppeteer import launch
+
+from Youtube2Bili.config_handler import ConfigHandler
+from Youtube2Bili.tools import *
+
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 fmt = '%(asctime)s %(levelname)s %(message)s'
@@ -21,28 +23,17 @@ coloredlogs.install(level='INFO', logger=logger, fmt=fmt)
 class YouTube2Bili:
     def __init__(self, ):
         self.video_downloaded = False
-        self.blogger_urls = []
-        self.output_directory = ''
-        self.max_age_days = 0
-        self.bilibili_token=''
-        self.polling_interval = 0
-        self.output_directory=''
-        self.max_video_size_mb=0
-        self.ffmpeg_path=''
-        self.max_downloads_per_blogger=0
-        self.downloaded_videos_file = os.path.join(self.output_directory, "downloaded_videos.txt")
-        self.outdate_videos_file=os.path.join(self.output_directory,"outdate_videos.txt") 
-           
     def update_config(self):
         logger.info("信息更新")
         self.blogger_urls = ConfigHandler.instance().config['blogger_urls']
         self.output_directory = ConfigHandler.instance().config['output_directory']
-        self.bilibili_token=ConfigHandler.instance().config['bilibili_token']
         self.max_age_days = ConfigHandler.instance().config['max_age_days']
         self.polling_interval = ConfigHandler.instance().config['polling_interval']
         self.ffmpeg_path=ConfigHandler.instance().config['ffmpeg_path']
         self.max_video_size_mb = ConfigHandler.instance().config['max_video_size_mb']
         self.max_downloads_per_blogger=ConfigHandler.instance().config['max_downloads_per_blogger']
+        self.sessdata=ConfigHandler.instance().config['sessdata']
+        self.bili_jct=ConfigHandler.instance().config['bili_jct']
         self.downloaded_videos_file = os.path.join(self.output_directory, "downloaded_videos.txt")
         self.outdate_videos_file=os.path.join(self.output_directory,"outdate_videos.txt")  
     def progress_hook(self, status_info):
@@ -50,13 +41,13 @@ class YouTube2Bili:
             self.video_downloaded = True
             logger.critical(f"视频下载完成: {status_info['filename']}")
     def process_video(self,video_title:str,video_path:str,video_desc:str,video_link:str,video_cover:str,video_tags:List[str]):
-        session = BiliSession.from_base64_string(self.bilibili_token) 
+        session = BiliSession.from_base64_string(get_bili_login_token(self.sessdata,self.bili_jct)) 
         endpoint_1,cid_1 = session.UploadVideo(video_path)
         logger.info("GPT正在处理标题...")
         video_title=ChatbotWrapper.instance().ask(f'把这段话改写成有趣且富有吸引力，能够激发好奇心和学习欲望的中文标题，不超过20个字：{video_title}')
         logger.info("标题处理完毕！")
         logger.info("GPT正在生成描述...")
-        video_desc=ChatbotWrapper.instance().ask(f'把这段话改写成有趣活泼、生动形象、简洁清晰的地道中文：{video_desc}')
+        video_desc=ChatbotWrapper.instance().ask(f'把这段话去除宣传信息，并改写成有趣活泼、生动形象、简洁清晰的地道中文：{video_desc}')
         logger.info("描述生成完毕！")
         logger.info("GPT正在生成标签...")
         tags=ChatbotWrapper.instance().ask(f'{video_desc}用中文从以上文本中总结出不多于5个关键词，并用,隔开')
@@ -191,9 +182,6 @@ class YouTube2Bili:
                             downloaded_count += 1
                         
                         
-                    
-            
-            
             time.sleep(self.polling_interval)
 
 

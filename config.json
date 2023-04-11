@@ -1,22 +1,24 @@
 {
-    "blogger_urls": [
-        "https://www.youtube.com/@AsianHalfSquat/videos",
-        "https://www.youtube.com/@Fireship/videos",
-        "https://www.youtube.com/@CroatCode/videos",
-        "https://www.youtube.com/@CaptainGizmo/videos",
-        "https://www.youtube.com/@BrickExperimentChannel/videos",
-        "https://www.youtube.com/@adin/videos",
-        "https://www.youtube.com/@Interestingengineeringofficial/videos",
-        "https://www.youtube.com/@NetworkChuck/videos",
-        "https://www.youtube.com/@SteveMould/videos",
-        "https://www.youtube.com/@veritasium/videos"
+    "bloggers": [
+        "AsianHalfSquat",
+        "Fireship",
+        "CroatCode",
+        "CaptainGizmo",
+        "BrickExperimentChannel",
+        "adin",
+        "Interestingengineeringofficial",
+        "NetworkChuck",
+        "SteveMould",
+        "veritasium"
         ],
     "output_directory": "downloaded_videos",
     "max_age_days": 720,
     "ffmpeg_path":"C:\\Program Files\\ffmpeg-6.0-essentials_build\\bin\\ffmpeg.exe",
     "max_downloads_per_blogger":1,
+    "sessdata":"1e176b43%2C1696678259%2C4aed6%2A41",
+    "bili_jct":"2cc377da4480f5456b5d6e3e13380cd5",
     "max_video_size_mb":400,
-    "polling_interval": 3600,
-    "access_token": "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6Ik1UaEVOVUpHTkVNMVFURTRNMEZCTWpkQ05UZzVNRFUxUlRVd1FVSkRNRU13UmtGRVFrRXpSZyJ9.eyJodHRwczovL2FwaS5vcGVuYWkuY29tL3Byb2ZpbGUiOnsiZW1haWwiOiJiZHJnaG1mNzI1QDUyMC1zaG9wLmNvbSIsImVtYWlsX3ZlcmlmaWVkIjp0cnVlfSwiaHR0cHM6Ly9hcGkub3BlbmFpLmNvbS9hdXRoIjp7InVzZXJfaWQiOiJ1c2VyLWJhbVJQeERobE1HNUo2UTgzdU1hSjdVdiJ9LCJpc3MiOiJodHRwczovL2F1dGgwLm9wZW5haS5jb20vIiwic3ViIjoiYXV0aDB8NjQyOGYwODY5NzI5OWNjOTY3OWM3YjY2IiwiYXVkIjpbImh0dHBzOi8vYXBpLm9wZW5haS5jb20vdjEiLCJodHRwczovL29wZW5haS5vcGVuYWkuYXV0aDBhcHAuY29tL3VzZXJpbmZvIl0sImlhdCI6MTY4MDkyMDYwNSwiZXhwIjoxNjgyMTMwMjA1LCJhenAiOiJUZEpJY2JlMTZXb1RIdE45NW55eXdoNUU0eU9vNkl0RyIsInNjb3BlIjoib3BlbmlkIHByb2ZpbGUgZW1haWwgbW9kZWwucmVhZCBtb2RlbC5yZXF1ZXN0IG9yZ2FuaXphdGlvbi5yZWFkIG9mZmxpbmVfYWNjZXNzIn0.xcz9urI_Y6a2rvAZJ3nwDuCnv-4ngp9B8Lv48nSjztROCVyiG5u1eun38h8j0XNytWpxmcIiAlv5ZMV7R_BGZtT_Paq5fU7AAoPbQf0GSFPXYy1CKAAS5V4KvLuDM94AYMfP-EJ6ZJkG9JAy3dfAWC_5qzTJjR_7Xc0GAEam9rQ-yM0a4gydMs02FE5Hkg0KY3j2-ThbbWtVRAgM7LkeRMA2jA8B6DWMwp-vTrBe5ekW5jLvpM0qUQB8mPstpKWTHlxkqOWm4Mb9bMXZbvQXNCmUIG-pXISA-V6NAMf9Ufb3Aocx6ASIjbir_6VIlOzP992tuMch40nzxK6RzWv5mg",
-    "bilibili_token":"H4sIAEMDNGQC/1WSy2/TQBCHg5o2kYCqtBIXQIoqiiiINnZsJ0FwiFok1EoGUe6r9Xqi2XZjG++6pYdKcEGxtDeW/5f1oy8f7PFvHrvzzfzq/pMrnfq5Mq91j6XpGQdp9EYOPwqQSu7dSE++tdJBrRzR3Pw1u79NnUiyVHB2afQ6KpW1Sac2RG8dwpwWQjVZX5uwm8R+AkoymoFZ6l4+Z+408E2ptyrTGU4JleQmItSPkMdAmuKuDXssVc6ZInG6oDyxwrNWaCuRIjmHnM85jUR1wtPWncj7nlJv3HraYscd/fxWlKAIT7jiVNgAIWxnpd6878+owroUsCIHkuWpSlkqLLrVCor9rlxIaf5YuiQSKTuDuD1Mml2rUSHSiztaqLskSS/M0cGKFxeR7pPrWVwZ3aleD/YbiCefTk4OZ99nBvt6rQF9Zza2UcnTuqNuQhdg8KVePaeiAKO3HXDGQeSNdtwDJ5gGwXji+lP741GIgx135jlGd7M0V/Y669WXyAyYBQex7XWthYUDvdGY99ybrXZLTlm1W4PCbVvPGncSlnqtYWeDevAz4zlUFHoxtwuQV367oIsFJNVlHrYmKXJRBbUbY1NXic1TFZ/+Z8v9SyIuTSgrgBEXnJwyZfBVAwd3jzv4Bj/iWz1wGRuNxzH1vMlw7nt+EPlxACNwRqPJkMW+wXch7pW4jwMcluiU6OI2jpboleiHGCxxHOIkxGmJ768MfqiOLKTEF9fz60mQ9SDsHkBkir3/cNfa+34DAAA="
+    "polling_interval": 7200,
+    "access_token": "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6Ik1UaEVOVUpHTkVNMVFURTRNMEZCTWpkQ05UZzVNRFUxUlRVd1FVSkRNRU13UmtGRVFrRXpSZyJ9.eyJodHRwczovL2FwaS5vcGVuYWkuY29tL3Byb2ZpbGUiOnsiZW1haWwiOiJiZHJnaG1mNzI1QDUyMC1zaG9wLmNvbSIsImVtYWlsX3ZlcmlmaWVkIjp0cnVlfSwiaHR0cHM6Ly9hcGkub3BlbmFpLmNvbS9hdXRoIjp7InVzZXJfaWQiOiJ1c2VyLWJhbVJQeERobE1HNUo2UTgzdU1hSjdVdiJ9LCJpc3MiOiJodHRwczovL2F1dGgwLm9wZW5haS5jb20vIiwic3ViIjoiYXV0aDB8NjQyOGYwODY5NzI5OWNjOTY3OWM3YjY2IiwiYXVkIjpbImh0dHBzOi8vYXBpLm9wZW5haS5jb20vdjEiLCJodHRwczovL29wZW5haS5vcGVuYWkuYXV0aDBhcHAuY29tL3VzZXJpbmZvIl0sImlhdCI6MTY4MDkyMDYwNSwiZXhwIjoxNjgyMTMwMjA1LCJhenAiOiJUZEpJY2JlMTZXb1RIdE45NW55eXdoNUU0eU9vNkl0RyIsInNjb3BlIjoib3BlbmlkIHByb2ZpbGUgZW1haWwgbW9kZWwucmVhZCBtb2RlbC5yZXF1ZXN0IG9yZ2FuaXphdGlvbi5yZWFkIG9mZmxpbmVfYWNjZXNzIn0.xcz9urI_Y6a2rvAZJ3nwDuCnv-4ngp9B8Lv48nSjztROCVyiG5u1eun38h8j0XNytWpxmcIiAlv5ZMV7R_BGZtT_Paq5fU7AAoPbQf0GSFPXYy1CKAAS5V4KvLuDM94AYMfP-EJ6ZJkG9JAy3dfAWC_5qzTJjR_7Xc0GAEam9rQ-yM0a4gydMs02FE5Hkg0KY3j2-ThbbWtVRAgM7LkeRMA2jA8B6DWMwp-vTrBe5ekW5jLvpM0qUQB8mPstpKWTHlxkqOWm4Mb9bMXZbvQXNCmUIG-pXISA-V6NAMf9Ufb3Aocx6ASIjbir_6VIlOzP992tuMch40nzxK6RzWv5mg"
+
 }
