@@ -196,8 +196,12 @@ class YouTube2Bili:
                         if self.video_downloaded:
                             downloaded_count += 1
                         
-                        
-            time.sleep(self.polling_interval)
+            remaining_time = self.polling_interval
+            while remaining_time > 0:
+                logger.info(f"等待 {remaining_time} 秒...")
+                time.sleep(1)
+                remaining_time -= 1
+            logger.info("进入下一轮发布...")
 
 
 
