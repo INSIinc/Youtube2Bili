@@ -3,7 +3,7 @@ import logging
 import coloredlogs
 from watchdog.events import FileSystemEventHandler
 import random
-
+import os
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 fmt = '%(asctime)s %(levelname)s %(message)s'
@@ -30,6 +30,8 @@ class ConfigHandler(FileSystemEventHandler):
     def load_config(self):
         with open(self.config_file, 'r',encoding="utf-8") as f:
             self.config = json.load(f)
+        if not os.path.exists(self.config['output_directory']):
+            os.mkdir(self.config['output_directory'])
         self.config['blogger_urls']=[]
         for blogger in self.config['bloggers']:
             self.config['blogger_urls'].append(f"https://www.youtube.com/@{blogger}/videos")

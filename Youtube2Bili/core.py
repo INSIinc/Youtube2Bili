@@ -25,6 +25,8 @@ class YouTube2Bili:
     def __init__(self, ):
         self.video_downloaded = False
         self.max_age_days=None
+        
+        
     def update_config(self):
         logger.critical("加载config.json")
         self.output_directory = ConfigHandler.instance().config['output_directory']
@@ -39,8 +41,17 @@ class YouTube2Bili:
         self.title_prompt=ConfigHandler.instance().config['title_prompt']
         self.desc_prompt=ConfigHandler.instance().config['desc_prompt']
         self.blogger_urls = ConfigHandler.instance().config['blogger_urls']
+        self.bili_login_token=get_bili_login_token(self.sessdata,self.bili_jct)
+        self.session =BiliSession.from_base64_string(self.bili_login_token) 
+        if not os.path.exists(self.downloaded_videos_file):
+            with open(self.downloaded_videos_file, "w") as f:
+                f.write("")
+        if not os.path.exists(self.outdate_videos_file):
+            with open(self.outdate_videos_file, "w") as f:
+                f.write("")
+       
         if self.max_age_days!=None and self.max_age_days!=ConfigHandler.instance().config['max_age_days']:
-            logger.info("检测到max_ge_days更新->重新生成缓存")
+            logger.info("检测到max_age_days更新->重新生成缓存")
             with open(self.outdate_videos_file, "w") as f:
                 f.write("")
         self.max_age_days = ConfigHandler.instance().config['max_age_days']
@@ -52,19 +63,43 @@ class YouTube2Bili:
         if status_info['filename'].endswith('.mp4')and status_info['status'] == 'finished':
             self.video_downloaded = True
             logger.critical(f"视频下载完成: {status_info['filename']}")
-    def process_video(self,video_title:str,video_path:str,video_desc:str,video_link:str,video_cover:str,video_tags:List[str]):
-        session = BiliSession.from_base64_string(get_bili_login_token(self.sessdata,self.bili_jct)) 
+    async def process_video(self,video_title:str,video_path:str,video_desc:str,video_link:str,video_cover:str,video_tags:List[str]):
         logger.info(f"视频开始上传")
-        endpoint_1,cid_1 = session.UploadVideo(video_path)
+        max_tries=5
+        for i in range(max_tries):
+            try:
+                endpoint_1,cid_1 = self.session.UploadVideo(video_path)
+                break
+            except Exception as e:
+                logger.error(f"视频上传出错,{e}，重试第{i+1}次")
+                if i==max_tries-1:
+                    raise Exception("视频上传出错！")
         logger.info("GPT正在处理标题...")
-        video_title=ChatbotWrapper.instance().ask(f'{self.title_prompt}{video_title}')
-        logger.info("标题处理完毕！")
+        try:
+            res=await BingbotWrapper.instance().ask(f'{self.title_prompt}{video_title}')
+            video_title=res
+        except Exception as e:
+            if e=='hiddenText':
+                pass
+        
+        logger.info(f"标题处理完毕:{video_title}")
         logger.info("GPT正在生成描述...")
-        video_desc=ChatbotWrapper.instance().ask(f'{self.desc_prompt}{video_desc}')
+        try:
+            res=await BingbotWrapper.instance().ask(f'{self.desc_prompt}{video_desc}')
+            video_desc=res
+        except Exception as e:
+            if e=='hiddenText':
+                pass
         logger.info("描述生成完毕！")
         logger.info("GPT正在生成标签...")
-        tags=ChatbotWrapper.instance().ask(f'{video_desc}用中文从以上文本中总结出不多于5个关键词，并用,隔开')
-        tags=tags.split(',')
+        tags=[]
+        try:
+            res=await BingbotWrapper.instance().ask(f'{video_desc} 用中文从以上文本中总结出不多于5个关键词，并用“-”隔开，只需要输出结果，不要补充，不要解释')
+            tags=res.split('-')
+        except Exception as e:
+            if e=='hiddenText':
+                pass
+        
         logger.info("标签生成完毕！")
         logger.info("准备提交视频...")
         submission = Submission(
@@ -77,7 +112,7 @@ class YouTube2Bili:
                 video_endpoint=endpoint_1
             )
         )
-        cover = session.UploadCover(video_cover)
+        cover = self.session.UploadCover(video_cover)
         submission.description=video_desc
         submission.cover_url = cover['data']['url']
         submission.source = video_link
@@ -85,7 +120,10 @@ class YouTube2Bili:
         for tag in tags:
             submission.tags.append(tag)
         submission.thread = 122
-        logger.info(session.SubmitSubmission(submission,seperate_parts=False))
+        resp=self.session.SubmitSubmission(submission,seperate_parts=False)
+        logger.info(resp)
+        if resp['results'][0]['code']!=0:
+            raise Exception(resp['results'][0]['message'])
         logger.info("写入视频列表txt...")
         with open(self.downloaded_videos_file, "a") as f:
             f.write(video_link + "\n")
@@ -107,7 +145,7 @@ class YouTube2Bili:
         upload_date = datetime.strptime(video_info['upload_date'], '%Y%m%d')
         days_since_upload = (datetime.now() - upload_date).days
         return days_since_upload <= self.max_age_days
-    def download_videos(self, video_link):
+    async def download_videos(self, video_link):
         self.video_downloaded = False  # 重置下载状态
         if not is_valid_url(video_link):
             logger.warning(f"{video_link}URL不合法！")
@@ -116,12 +154,12 @@ class YouTube2Bili:
         ydl_opts = {
             'outtmpl': os.path.join(self.output_directory, '%(title)s', '%(title)s.%(ext)s'),
             'format': 'best',
-            'writesubtitles': True,
+            # 'writesubtitles': True,
             'max_filesize': max_filesize,
-            'subtitleslangs': ['en', 'zh-Hans'],
+            # 'subtitleslangs': ['en', 'zh-Hans'],
             'writethumbnail': True,
-            'writeinfojson': True,
-            'embedsubtitles': True,
+            # 'writeinfojson': True,
+            # 'embedsubtitles': True,
             'ffmpeg_location': self.ffmpeg_path,
             'progress_hooks': [self.progress_hook],
             'postprocessors': [{'key': 'FFmpegEmbedSubtitle'}],
@@ -136,23 +174,34 @@ class YouTube2Bili:
                 logger.info("信息抓取完毕！")
                 if self.is_video_recent(video_info):
                     logger.info("视频下载中...")
-                    try:
-                        ydl.download([video_link])
-                    except Exception as e:
-                        logger.error(f"{video_link}视频下载失败，错误信息：{e}")
-                        return
+                    max_retries = 3 # 设置最大重试次数
+                    for i in range(max_retries):
+                        try:
+                            ydl.download([video_link])
+                            break # 如果成功下载，跳出循环
+                        except Exception as e:
+                            logger.error(f"{video_link}视频下载失败，错误信息：{e}")
+                            if i == max_retries - 1: # 如果达到最大重试次数，返回
+                                return
 
                     if self.video_downloaded:
                         video_path = ydl.prepare_filename(video_info)
                         logger.info("处理封面中...")
                         [Image.open(os.path.join(os.path.dirname(video_path), f)).save(os.path.join(os.path.dirname(video_path), os.path.splitext(f)[0] + ".png"))  for f in os.listdir(os.path.dirname(video_path)) if f.lower().endswith((".jpg", ".jpeg", ".png", ".bmp", ".gif",".webp"))]
                         cover=os.path.splitext(ydl.prepare_filename(video_info))[0] + f'.png'
-                        try:
-                            self.process_video(video_info['title'], video_path,video_info['description'],video_link,cover,video_info['tags'])
-                            
-                        except Exception as e:
-                            logger.error(f"{video_link}视频发布失败，错误信息：{e}")
-                            return
+                        logger.info("封面处理完毕！")
+                        max_retries = 3 # 设置最大重试次数
+                        for i in range(max_retries):
+                            try:
+                                await self.process_video(video_info['title'], video_path,video_info['description'],video_link,cover,video_info['tags'])
+                                break
+                            except Exception as e:
+                                logger.error(f"{video_link}视频发布失败，错误信息：{e}，重试第{i+1}次")
+                                
+                                if i == max_retries - 1: # 如果达到最大重试次数，返回
+                                    return
+                                
+                        
                         logger.info("清除已上传视频及文件...")
                         shutil.rmtree(os.path.dirname(video_path))
         
@@ -168,13 +217,7 @@ class YouTube2Bili:
                     with open(self.outdate_videos_file, "a") as f:
                         f.write(video_link + "\n")
 
-    def run(self):
-        if not os.path.exists(self.downloaded_videos_file):
-            with open(self.downloaded_videos_file, "w") as f:
-                f.write("")
-        if not os.path.exists(self.outdate_videos_file):
-            with open(self.outdate_videos_file, "w") as f:
-                f.write("")
+    async def run(self):
         
         while True:
             
@@ -184,7 +227,7 @@ class YouTube2Bili:
                 
                 for blogger_url in self.blogger_urls:
                     logger.critical(f'处理博主：{blogger_url}')
-                    video_links = asyncio.get_event_loop().run_until_complete(self.get_blogger_videos(blogger_url))
+                    video_links = await self.get_blogger_videos(blogger_url)
                     video_links=remove_invalid_urls(video_links)
                     # 添加计数器
                     downloaded_count = 0
@@ -192,7 +235,7 @@ class YouTube2Bili:
                         if downloaded_count >= self.max_downloads_per_blogger:
                             logger.critical(f"已达到博主 {blogger_url} 的最大下载个数，跳过剩余视频。")
                             break
-                        self.download_videos(link)
+                        await self.download_videos(link)
                         if self.video_downloaded:
                             downloaded_count += 1
                         
