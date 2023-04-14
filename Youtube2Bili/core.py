@@ -64,7 +64,7 @@ class YouTube2Bili:
             self.video_downloaded = True
             logger.critical(f"视频下载完成: {status_info['filename']}")
     async def process_video(self,video_title:str,video_path:str,video_desc:str,video_link:str,video_cover:str,video_tags:List[str]):
-        logger.info(f"视频开始上传")
+        logger.info(f"视频开始上传：{video_link}")
         max_tries=5
         for i in range(max_tries):
             try:
@@ -76,7 +76,7 @@ class YouTube2Bili:
                     raise Exception("视频上传出错！")
         logger.info("GPT正在处理标题...")
         try:
-            res=await BingbotWrapper.instance().ask(f'{self.title_prompt}{video_title}')
+            res=await Chatbots.instance().ask(f'{self.title_prompt}{video_title}')
             video_title=res
         except Exception as e:
             if e=='hiddenText':
@@ -85,7 +85,7 @@ class YouTube2Bili:
         logger.info(f"标题处理完毕:{video_title}")
         logger.info("GPT正在生成描述...")
         try:
-            res=await BingbotWrapper.instance().ask(f'{self.desc_prompt}{video_desc}')
+            res=await Chatbots.instance().ask(f'{self.desc_prompt}{video_desc}')
             video_desc=res
         except Exception as e:
             if e=='hiddenText':
@@ -94,13 +94,12 @@ class YouTube2Bili:
         logger.info("GPT正在生成标签...")
         tags=[]
         try:
-            res=await BingbotWrapper.instance().ask(f'{video_desc} 用中文从以上文本中总结出不多于5个关键词，并用“-”隔开，只需要输出结果，不要补充，不要解释')
-            tags=res.split('-')
+            res=await Chatbots.instance().ask(f'{video_desc} 用中文从以上文本中总结出不多于5个关键词，并用“、”隔开，只需要输出结果，不要补充，不要解释')
+            tags=res.split('、')
+            logger.info("标签生成完毕！")
         except Exception as e:
             if e=='hiddenText':
                 pass
-        
-        logger.info("标签生成完毕！")
         logger.info("准备提交视频...")
         submission = Submission(
         title=video_title,
@@ -125,6 +124,7 @@ class YouTube2Bili:
         if resp['results'][0]['code']!=0:
             raise Exception(resp['results'][0]['message'])
         logger.info("写入视频列表txt...")
+        self.downloaded_videos_url.add(video_link)
         with open(self.downloaded_videos_file, "a") as f:
             f.write(video_link + "\n")
         logger.info(f"B站上传完毕:{video_title}")
@@ -152,7 +152,7 @@ class YouTube2Bili:
             return
         max_filesize = self.max_video_size_mb * 1024 * 1024
         ydl_opts = {
-            'outtmpl': os.path.join(self.output_directory, '%(title)s', '%(title)s.%(ext)s'),
+            'outtmpl': os.path.join(self.output_directory, '%(uploader)s', '%(id)s.%(ext)s'),
             'format': 'best',
             # 'writesubtitles': True,
             'max_filesize': max_filesize,
@@ -202,8 +202,10 @@ class YouTube2Bili:
                                     return
                                 
                         
-                        logger.info("清除已上传视频及文件...")
-                        shutil.rmtree(os.path.dirname(video_path))
+                        logger.info(f"清除已上传视频{video_path}及封面{cover}...")
+                        os.remove(video_path)
+                        os.remove(cover)
+                        # shutil.rmtree(os.path.dirname(video_path))
         
                     else:    
                         logger.info(f"可能由于文件大于{self.max_video_size_mb}MB，视频未下载，跳过后续处理")
@@ -214,6 +216,7 @@ class YouTube2Bili:
                                     if video_link != outlink:
                                         f.write(outlink) 
                 else:
+                    self.outdate_videos_url.add(video_link)
                     with open(self.outdate_videos_file, "a") as f:
                         f.write(video_link + "\n")
 

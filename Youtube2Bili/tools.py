@@ -1,12 +1,25 @@
 
 import pysubs2
 from urllib.parse import urlparse
-from EdgeGPT import Chatbot, ConversationStyle
+from EdgeGPT import Chatbot as GPTBing, ConversationStyle
+from revChatGPT.V3 import Chatbot as GPTAPI
+from revChatGPT.V1 import Chatbot as GPTWeb
 from Youtube2Bili.config_handler import ConfigHandler, logger
 import bilibili_toolman
+import inspect
+import hashlib
 import subprocess
 import sys
-
+class GPTBot:
+    def __init__(self,id):
+        self.chatbot = None
+        self.busy = False
+        self.name=f"GPT-{hashlib.sha1(id.encode()).hexdigest()[:8]}"
+    def ask(self, prompt):
+        logger.critical(f"{self.name}正在处理...")
+        self.busy=True
+    def is_available(self):
+        pass
 def get_bili_login_token(sessdata, bili_jct):
     """
     运行 bilibili_toolman 命令，并返回去除“保存登录凭据”、空格和换行符后的输出结果。
@@ -20,69 +33,42 @@ def get_bili_login_token(sessdata, bili_jct):
     output = str(output).split('\\n')[2].split('\\r')[0] # 用utf-8编码编码字符串，返回字节序列
     # 返回处理后的输出结果
     return output
-class ChatbotWrapper:
-    _instance = None
-
-    def __new__(cls, *args, **kwargs):
-        if cls._instance is None:
-            cls._instance = super().__new__(cls)
-            # You can also initialize attributes here if needed
-        return cls._instance
-
-    def __init__(self,access_token=None):
+class ChatGPtWeb(GPTBot):
+    def __init__(self,access_token):
+        super().__init__(access_token)
         if access_token!=None:
-            self.chatbot = Chatbot(config={
+            self.chatbot=GPTWeb(config={
             "access_token": access_token
         })
+        self.name=f"web-{self.name}"
+       
         
-    @classmethod
-    def instance(cls, access_token=None):
-        return cls(access_token)
-
     def ask(self, prompt):
-        """
-        询问 Chatbot
-
-        :param prompt: 询问内容
-        :return: Chatbot 的回答
-        """
+        super().ask(prompt)
         response = ""
         for data in self.chatbot.ask(prompt):
             response = data["message"]
+        self.busy=False
         return response
-    def update_access_token(self):
-        """
-        更新访问令牌
-
-        :param new_access_token: 新的访问令牌
-        """
-        self.chatbot = Chatbot(config={
-            "access_token": ConfigHandler.instance().config['access_token']
-        })
-class BingbotWrapper:
-    _instance = None
-
-    def __new__(cls, *args, **kwargs):
-        if cls._instance is None:
-            cls._instance = super().__new__(cls)
-            # You can also initialize attributes here if needed
-        return cls._instance
-
-    def __init__(self,bing_cookies_path=None):
-        if bing_cookies_path!=None:
-            self.chatbot = Chatbot(cookiePath=bing_cookies_path)
         
-    @classmethod
-    def instance(cls, bing_cookies_path=None):
-        return cls(bing_cookies_path)
-
+class ChatGPTAPI(GPTBot):
+    def __init__(self,api_key):
+        super().__init__(api_key)
+        self.chatbot = GPTAPI(api_key=api_key)
+        self.name=f"api-{self.name}"
+    def ask(self, prompt):
+        super().ask(prompt)
+        result=self.chatbot.ask(prompt)
+        self.busy=False
+        return result
+    
+class BingBot(GPTBot):
+    def __init__(self,bing_cookies_path):
+        super().__init__(bing_cookies_path)
+        self.chatbot=GPTBing(cookiePath=bing_cookies_path)
+        self.name=f"bing-{self.name}"
     async def ask(self, prompt):
-        """
-        询问 Chatbot
-
-        :param prompt: 询问内容
-        :return: Chatbot 的回答
-        """
+        super().ask(prompt)
         max_tries=5
         for i in range(max_tries):
             try:
@@ -98,13 +84,55 @@ class BingbotWrapper:
                     logger.error(f"GPT处理失败或拒绝处理，{response['item']['messages'][1]['hiddenText']}")
                     raise Exception("hiddenText")
         await self.chatbot.close()
+        self.busy=False
         return result
-    def update_cookies_path(self):
+    
+class Chatbots:
+    _instance = None
+
+    def __new__(cls, *args, **kwargs):
+        if cls._instance is None:
+            cls._instance = super().__new__(cls)
+            # You can also initialize attributes here if needed
+        return cls._instance
+    def __init__(self):
+        pass
+    @classmethod
+    def instance(cls):
+        return cls()
+    def get_next_bot(self):
+        bot = self.chatbots[self.current_bot_index]
+        self.current_bot_index = (self.current_bot_index + 1) % len(self.chatbots)
+        return bot
+    async def ask(self, prompt):
+        bot = self.get_next_bot()
+        while bot.busy:
+            bot = self.get_next_bot()
+        if inspect.iscoroutinefunction(bot.ask):
+            return await bot.ask(prompt)
+        else:
+            return bot.ask(prompt)
+    def update(self):
         """
         更新访问令牌
 
+        :param new_access_token: 新的访问令牌
         """
-        self.chatbot = Chatbot(cookiePath=ConfigHandler.instance().config['bing_cookies_path'])
+        logger.info("载入GPT...")
+        self.chatbots=[]
+        self.current_bot_index = 0
+        api_keys= ConfigHandler.instance().config['api_keys']
+        access_tokens=ConfigHandler.instance().config['access_tokens']
+        cookies_pathes=ConfigHandler.instance().config['bing_cookies_pathes']
+        for key in api_keys:
+            logger.info("载入chatgpt api")
+            self.chatbots.append(ChatGPTAPI(key))
+        for token in access_tokens:
+            logger.info("载入chatgpt access_token")
+            self.chatbots.append(ChatGPtWeb(token))
+        for cookies in cookies_pathes:
+            logger.info("载入bing cookies")
+            self.chatbots.append(BingBot(cookies))
 def is_valid_url(url):
     try:
         result = urlparse(url)
